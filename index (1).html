@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Disaster Relief Supply Loader</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- Toast Container -->
+  <div id="toast-container" aria-live="polite"></div>
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="header-brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M16 2L3 9V23L16 30L29 23V9L16 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M16 2V30M3 9L29 23M29 9L3 23" stroke="currentColor" stroke-width="1.2" stroke-opacity="0.4"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">Disaster Relief Supply Loader</h1>
+          <p class="brand-sub">Fractional Knapsack Optimization Engine</p>
+        </div>
+      </div>
+      <div class="header-controls">
+        <div id="disaster-badge" class="disaster-badge hidden">
+          <span class="badge-dot"></span>
+          <span id="badge-label">No Disaster Selected</span>
+        </div>
+        <button id="theme-toggle" class="btn-icon" title="Toggle theme" aria-label="Toggle dark/light mode">
+          <svg id="theme-icon-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+          <svg id="theme-icon-light" class="hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-main">
+
+    <!-- ===== LEFT PANEL ===== -->
+    <aside class="panel panel-left">
+
+      <!-- Disaster Configuration -->
+      <section class="card" id="disaster-config">
+        <div class="card-header">
+          <h2 class="card-title">Mission Parameters</h2>
+          <span class="card-tag">Step 1</span>
+        </div>
+        <div class="card-body">
+          <div class="form-group">
+            <label for="disaster-type">Disaster Type</label>
+            <div class="select-wrapper">
+              <select id="disaster-type">
+                <option value="">— Select Disaster —</option>
+                <option value="flood">🌊 Flood</option>
+                <option value="earthquake">🌍 Earthquake</option>
+                <option value="tsunami">🌊 Tsunami</option>
+                <option value="drought">☀️ Drought</option>
+              </select>
+            </div>
+            <p class="field-hint">Adjusts category priority multipliers</p>
+          </div>
+
+          <div class="form-group">
+            <label for="vehicle-capacity">Vehicle Capacity (kg)</label>
+            <input type="number" id="vehicle-capacity" placeholder="e.g. 500" min="1" step="0.1" />
+            <p class="field-hint">Maximum load the vehicle can carry</p>
+          </div>
+
+          <!-- Multiplier Preview -->
+          <div id="multiplier-preview" class="multiplier-grid hidden">
+            <p class="multiplier-title">Active Multipliers</p>
+            <div class="multiplier-row">
+              <span class="cat-badge cat-food">Food</span>
+              <span id="mult-food" class="mult-val">—</span>
+            </div>
+            <div class="multiplier-row">
+              <span class="cat-badge cat-medicine">Medicine</span>
+              <span id="mult-medicine" class="mult-val">—</span>
+            </div>
+            <div class="multiplier-row">
+              <span class="cat-badge cat-water">Water</span>
+              <span id="mult-water" class="mult-val">—</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Add / Edit Item -->
+      <section class="card" id="item-form-card">
+        <div class="card-header">
+          <h2 class="card-title" id="form-title">Add Supply Item</h2>
+          <span class="card-tag">Step 2</span>
+        </div>
+        <div class="card-body">
+          <input type="hidden" id="edit-index" value="-1" />
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="item-name">Item Name</label>
+              <input type="text" id="item-name" placeholder="e.g. Rice Bags" maxlength="40" />
+            </div>
+            <div class="form-group">
+              <label for="item-category">Category</label>
+              <div class="select-wrapper">
+                <select id="item-category">
+                  <option value="">— Category —</option>
+                  <option value="Food">Food</option>
+                  <option value="Medicine">Medicine</option>
+                  <option value="Water">Water</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="item-weight">Weight (kg)</label>
+              <input type="number" id="item-weight" placeholder="e.g. 50" min="0.01" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label for="item-priority">
+                Base Priority
+                <span class="tooltip-anchor" data-tip="A score from 1–100 indicating how critical this item is before disaster adjustments.">?</span>
+              </label>
+              <input type="number" id="item-priority" placeholder="1–100" min="1" max="9999" step="1" />
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button id="btn-add-item" class="btn btn-primary">
+              <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"/></svg>
+              Add Item
+            </button>
+            <button id="btn-cancel-edit" class="btn btn-ghost hidden">Cancel Edit</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Action Buttons -->
+      <section class="card action-card">
+        <div class="card-header">
+          <h2 class="card-title">Optimize</h2>
+          <span class="card-tag">Step 3</span>
+        </div>
+        <div class="card-body">
+          <button id="btn-run" class="btn btn-accent btn-full">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"/></svg>
+            Run Optimization
+          </button>
+          <button id="btn-reset" class="btn btn-danger btn-full">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"/></svg>
+            Reset All
+          </button>
+        </div>
+      </section>
+
+    </aside>
+
+    <!-- ===== RIGHT PANEL ===== -->
+    <div class="panel panel-right">
+
+      <!-- Items Table -->
+      <section class="card table-card">
+        <div class="card-header">
+          <h2 class="card-title">Supply Inventory</h2>
+          <span id="item-count-badge" class="count-badge">0 items</span>
+        </div>
+        <div class="card-body table-body">
+          <div id="empty-state" class="empty-state">
+            <div class="empty-icon">📦</div>
+            <p>No items added yet.</p>
+            <p class="empty-sub">Add supply items using the form on the left.</p>
+          </div>
+          <div id="table-wrapper" class="table-wrapper hidden">
+            <table id="items-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Category</th>
+                  <th>Weight (kg)</th>
+                  <th>Base Priority</th>
+                  <th>
+                    Adj. Priority
+                    <span class="tooltip-anchor" data-tip="Base Priority × Disaster Multiplier for this category.">?</span>
+                  </th>
+                  <th>Value Density</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="items-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Results Section (hidden until run) -->
+      <section id="results-section" class="card results-card hidden">
+        <div class="card-header">
+          <h2 class="card-title">Optimization Results</h2>
+          <div class="result-meta">
+            <span id="result-disaster-tag" class="disaster-result-tag"></span>
+          </div>
+        </div>
+        <div class="card-body">
+
+          <!-- KPI Row -->
+          <div class="kpi-row">
+            <div class="kpi-card">
+              <div class="kpi-label">Total Weight Used</div>
+              <div class="kpi-value" id="kpi-weight">—</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Total Adj. Priority</div>
+              <div class="kpi-value" id="kpi-priority">—</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Efficiency (val/kg)</div>
+              <div class="kpi-value" id="kpi-efficiency">—</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Capacity Used</div>
+              <div class="kpi-value" id="kpi-capacity-pct">—</div>
+            </div>
+          </div>
+
+          <!-- Capacity Bar -->
+          <div class="capacity-section">
+            <div class="capacity-header">
+              <span>Capacity Utilization</span>
+              <span id="capacity-text">0 / 0 kg</span>
+            </div>
+            <div class="progress-track">
+              <div id="progress-fill" class="progress-fill" style="width:0%"></div>
+            </div>
+          </div>
+
+          <!-- Critical Category Alert -->
+          <div id="critical-alert" class="critical-alert hidden">
+            <div class="alert-icon">⚠️</div>
+            <div class="alert-body">
+              <strong>Most Critical Category:</strong>
+              <span id="critical-category-text"></span>
+            </div>
+          </div>
+
+          <!-- Results Split: Table + Chart -->
+          <div class="results-split">
+            <div class="results-table-wrap">
+              <h3 class="section-sub-title">Selected Items</h3>
+              <table id="results-table">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Cat.</th>
+                    <th>Weight</th>
+                    <th>Fraction</th>
+                    <th>Adj. Value</th>
+                  </tr>
+                </thead>
+                <tbody id="results-tbody"></tbody>
+              </table>
+            </div>
+            <div class="chart-wrap">
+              <h3 class="section-sub-title">Priority Distribution</h3>
+              <canvas id="results-chart"></canvas>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="app-footer">
+    <p>Disaster Relief Supply Loader &mdash; Fractional Knapsack Algorithm &mdash; Built for Emergency Logistics Optimization</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
